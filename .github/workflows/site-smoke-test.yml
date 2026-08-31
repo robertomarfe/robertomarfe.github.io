@@ -1,0 +1,58 @@
+name: Site smoke test
+
+on:
+  workflow_run:
+    workflows: ["pages build and deployment"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-test:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify public HTTPS routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://robertomarfe.github.io"
+          routes=(
+            "/"
+            "/research01.html"
+            "/research02.html"
+            "/teaching.html"
+            "/master.html"
+            "/cv/"
+            "/APConference/apconference.htm"
+          )
+
+          for route in "${routes[@]}"; do
+            url="${base}${route}"
+            echo "Checking ${url}"
+            ok=0
+            for attempt in {1..12}; do
+              code=$(curl --proto '=https' --tlsv1.2 --location --silent --show-error \
+                --output /tmp/page.html --write-out '%{http_code}' "$url" || true)
+              if [[ "$code" == "200" ]]; then
+                ok=1
+                break
+              fi
+              echo "Attempt ${attempt}: HTTP ${code:-000}; retrying"
+              sleep 5
+            done
+            if [[ "$ok" != "1" ]]; then
+              echo "Failed to retrieve ${url} over HTTPS"
+              exit 1
+            fi
+            if grep -Eiq '(src|href)=["'"']http://' /tmp/page.html; then
+              echo "Insecure HTTP resource/link found in ${url}"
+              grep -Ein '(src|href)=["'"']http://' /tmp/page.html || true
+              exit 1
+            fi
+          done
+
+          echo "All public HTTPS routes passed."
