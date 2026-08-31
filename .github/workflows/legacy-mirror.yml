@@ -61,13 +61,6 @@ jobs:
 
           echo '===== MIRROR FILES =====' | tee logs/files.txt
           find mirror -type f -printf '%P\t%s bytes\n' | sort | tee -a logs/files.txt
-
-          echo '===== HTML ASSET REFERENCES =====' > logs/references.txt
-          find mirror -type f \( -name '*.html' -o -name '*.htm' \) -print0 | while IFS= read -r -d '' f; do
-            echo "--- $f" >> logs/references.txt
-            grep -Eo '(href|src)=["'"'][^"'"']+' "$f" >> logs/references.txt || true
-          done
-
           cp -r logs mirror/_mirror_logs
 
       - name: Upload recovered legacy snapshot
