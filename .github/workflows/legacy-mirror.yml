@@ -1,0 +1,79 @@
+name: Legacy Altervista mirror
+
+on:
+  push:
+    paths:
+      - '.github/workflows/legacy-mirror.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Mirror original pages and requisites
+        shell: bash
+        run: |
+          set -u
+          mkdir -p mirror logs
+          UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/150 Safari/537.36'
+          pages=(
+            '/'
+            '/research01.html'
+            '/research02.html'
+            '/teaching.html'
+            '/master.html'
+            '/teaching/teaching.html'
+            '/APConference/apconference.htm'
+            '/cv/ROBERTO_MARFE_CV.pdf'
+            '/pictures/marfe_cca_02.jpg'
+          )
+
+          for path in "${pages[@]}"; do
+            echo "===== ${path} =====" | tee -a logs/wget.log
+            ok=0
+            for scheme in https http; do
+              url="${scheme}://robertomarfe.altervista.org${path}"
+              echo "Trying ${url}" | tee -a logs/wget.log
+              if wget \
+                --user-agent="$UA" \
+                --timeout=30 \
+                --tries=4 \
+                --waitretry=3 \
+                --retry-connrefused \
+                --page-requisites \
+                --domains=robertomarfe.altervista.org,www.robertomarfe.altervista.org \
+                --no-host-directories \
+                --directory-prefix=mirror \
+                --server-response \
+                "$url" >> logs/wget.log 2>&1; then
+                ok=1
+                break
+              fi
+            done
+            if [[ "$ok" -ne 1 ]]; then
+              echo "FAILED ${path}" | tee -a logs/wget.log
+            fi
+          done
+
+          echo '===== MIRROR FILES =====' | tee logs/files.txt
+          find mirror -type f -printf '%P\t%s bytes\n' | sort | tee -a logs/files.txt
+
+          echo '===== HTML ASSET REFERENCES =====' > logs/references.txt
+          find mirror -type f \( -name '*.html' -o -name '*.htm' \) -print0 | while IFS= read -r -d '' f; do
+            echo "--- $f" >> logs/references.txt
+            grep -Eo '(href|src)=["'"'][^"'"']+' "$f" >> logs/references.txt || true
+          done
+
+          cp -r logs mirror/_mirror_logs
+
+      - name: Upload recovered legacy snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: legacy-altervista-snapshot
+          path: mirror
+          if-no-files-found: error
+          retention-days: 7
