@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Master in Finance - Roberto Marfè</title>
+  
+    <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-JD45S6XTX1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-JD45S6XTX1');
+</script>
+
+  
+  <style>
+    body {
+      font-family: "Bookman Old Style", serif;
+      background-color: #f9f9f9;
+      color: #111;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+    h1 {
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 5px;
+      color: #003366;
+    }
+    a {
+      color: #003366;
+      text-decoration: none;
+    }
+    a:hover {
+      color: #003366;
+      text-decoration: none;
+      <!-- text-decoration: underline; -->
+    }
+    hr {
+      margin: 30px 0;
+    }
+    strong {
+      color: #003366;
+    }
+    nav {
+      text-align: center;
+      margin-top: 30px;
+    }
+    nav a {
+      margin: 0 10px;
+      color: #003366;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    nav a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html">Home</a> |
+  <a href="research01.html">Publications</a> |
+  <a href="research02.html">Working Papers</a> |
+  <a href="teaching.html">Teaching</a> |
+  <a href="master.html">Master in Finance</a> |
+  <a href="events.html">Events</a> |
+  <a href="professional.html">Professional</a>
+</nav>
+<hr>
+
+<h1>MAFIRM</h1>
+
+
+<p style="text-align: justify;">Since 2021 Roberto Marfè is Director of the II level Master in Finance, Insurance, and Risk Management (MAFIRM) 
+a joint initiative of the University of Turin and the Collegio Carlo Alberto started in 1998.</p>
+<p style="text-align: justify;"><strong>Program Overview:</strong><br>
+The MAFIRM is a one-year, full-time program taught entirely in English, designed to prepare students for 
+high-level careers in finance, banking, insurance, and consulting.
+An established international faculty and top-notch practitioners provide rigorous quantitative courses, 
+applied case studies, and data science applications.
+Applications are open and merit-based tuition fee waivers are available.
+</p>
+🔗 <a style="color: #003366; text-decoration: none;" href="https://www.carloalberto.org/education/master-in-finance/">Official Master Website</a><br>
+▶️ <a style="color: #003366; text-decoration: none;" href="Mafirm/slideshow.html">Video Presentation</a>
+
+
+
+<h2 style="color:#003366; margin-top:50px;">Program Slides</h2>
+
+<div id="slideshow-wrapper" style="text-align:center;">
+  <div id="slideshow" style="margin-bottom: 15px;">
+    <img id="slideImage" src="Mafirm/slides/slide_01.png" alt="Slide 1" style="max-height:500px; border:1px solid #ccc; border-radius:6px;">
+  </div>
+  <div>
+    <button onclick="prevSlide()">⟨ Prev</button>
+    <span id="slideNumber">1 / 13</span>
+    <button onclick="nextSlide()">Next ⟩</button>
+  </div>
+</div>
+
+<script>
+  var currentSlide = 1;
+  var totalSlides = 13;
+
+  function updateSlide() {
+    var img = document.getElementById('slideImage');
+    img.src = 'Mafirm/slides/slide_' + String(currentSlide).padStart(2, '0') + '.png';
+    img.alt = 'Slide ' + currentSlide;
+    document.getElementById('slideNumber').textContent = currentSlide + ' / ' + totalSlides;
+  }
+
+  function prevSlide() {
+    if (currentSlide > 1) {
+      currentSlide--;
+      updateSlide();
+    }
+  }
+
+  function nextSlide() {
+    if (currentSlide < totalSlides) {
+      currentSlide++;
+      updateSlide();
+    }
+  }
+</script>
+
+</body></html>
