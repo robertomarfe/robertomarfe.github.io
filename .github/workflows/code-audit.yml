@@ -1,0 +1,107 @@
+name: Full site code audit
+
+on:
+  push:
+    paths:
+      - '.github/workflows/code-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Audit HTML, links and assets
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          from urllib.parse import urlsplit, unquote
+          import collections, os
+
+          root = Path('.').resolve()
+          html_files = sorted(
+              p for p in Path('.').rglob('*')
+              if p.is_file() and p.suffix.lower() in {'.html', '.htm'}
+              and 'legacy-original' not in p.parts
+              and '.git' not in p.parts
+          )
+
+          errors = []
+          warnings = []
+
+          class Parser(HTMLParser):
+              def __init__(self, path):
+                  super().__init__(convert_charrefs=True)
+                  self.path = path
+                  self.refs = []
+                  self.ids = []
+                  self.has_title = False
+                  self.has_viewport = False
+                  self.has_favicon = False
+              def handle_starttag(self, tag, attrs):
+                  a = dict(attrs)
+                  if tag == 'title': self.has_title = True
+                  if tag == 'meta' and a.get('name','').lower() == 'viewport': self.has_viewport = True
+                  if tag == 'link' and 'icon' in a.get('rel','').lower(): self.has_favicon = True
+                  if 'id' in a: self.ids.append(a['id'])
+                  for attr in ('href','src'):
+                      if attr in a: self.refs.append((tag, attr, a[attr]))
+                  if tag == 'img' and 'alt' not in a:
+                      errors.append(f'{path}: image missing alt: {a.get("src", "")!r}')
+                  if tag == 'a' and a.get('target') == '_blank':
+                      rel = set(a.get('rel','').lower().split())
+                      if 'noopener' not in rel:
+                          warnings.append(f'{path}: target=_blank without rel=noopener: {a.get("href", "")!r}')
+
+          for path in html_files:
+              text = path.read_text(encoding='utf-8', errors='replace')
+              if not text.lstrip().lower().startswith('<!doctype html>'):
+                  warnings.append(f'{path}: missing HTML5 doctype')
+              parser = Parser(path)
+              try:
+                  parser.feed(text)
+              except Exception as e:
+                  errors.append(f'{path}: parser error: {e}')
+              if not parser.has_title: errors.append(f'{path}: missing title')
+              if not parser.has_viewport: warnings.append(f'{path}: missing viewport meta')
+              if not parser.has_favicon: warnings.append(f'{path}: missing favicon link')
+              dup = [k for k,v in collections.Counter(parser.ids).items() if v > 1]
+              if dup: errors.append(f'{path}: duplicate ids: {dup}')
+
+              for tag, attr, raw in parser.refs:
+                  ref = (raw or '').strip()
+                  if not ref:
+                      errors.append(f'{path}: empty {attr} on <{tag}>')
+                      continue
+                  if ref == '#':
+                      warnings.append(f'{path}: placeholder {attr}="#" on <{tag}>')
+                      continue
+                  parts = urlsplit(ref)
+                  scheme = parts.scheme.lower()
+                  if scheme in {'mailto','tel','data','javascript'}: continue
+                  if scheme == 'http':
+                      errors.append(f'{path}: insecure HTTP reference: {ref}')
+                      continue
+                  if scheme in {'https'} or parts.netloc: continue
+                  if ref.startswith('#'): continue
+                  clean = unquote(parts.path)
+                  if not clean: continue
+                  target = (root / clean.lstrip('/')) if clean.startswith('/') else (path.parent / clean)
+                  if clean.endswith('/'):
+                      target = target / 'index.html'
+                  target = target.resolve()
+                  if not target.exists():
+                      errors.append(f'{path}: missing local target: {ref} -> {target.relative_to(root) if target.is_relative_to(root) else target}')
+
+          print(f'Audited {len(html_files)} HTML/HTM files')
+          print('\nERRORS')
+          for x in errors: print('ERROR:', x)
+          print('\nWARNINGS')
+          for x in warnings: print('WARN:', x)
+          print(f'\nSUMMARY errors={len(errors)} warnings={len(warnings)}')
+          PY
