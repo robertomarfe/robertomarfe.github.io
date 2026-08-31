@@ -7,18 +7,22 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   mirror:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Mirror original pages and requisites
         shell: bash
         run: |
           set -u
-          mkdir -p mirror logs
+          rm -rf legacy-original
+          mkdir -p legacy-original logs
           UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/150 Safari/537.36'
           pages=(
             '/'
@@ -47,7 +51,7 @@ jobs:
                 --page-requisites \
                 --domains=robertomarfe.altervista.org,www.robertomarfe.altervista.org \
                 --no-host-directories \
-                --directory-prefix=mirror \
+                --directory-prefix=legacy-original \
                 --server-response \
                 "$url" >> logs/wget.log 2>&1; then
                 ok=1
@@ -59,14 +63,26 @@ jobs:
             fi
           done
 
-          echo '===== MIRROR FILES =====' | tee logs/files.txt
-          find mirror -type f -printf '%P\t%s bytes\n' | sort | tee -a logs/files.txt
-          cp -r logs mirror/_mirror_logs
+          find legacy-original -type f -printf '%P\t%s bytes\n' | sort > legacy-original/RECOVERED_FILES.txt
+          cp logs/wget.log legacy-original/RECOVERY_LOG.txt
+
+      - name: Commit recovered source
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add legacy-original
+          if git diff --cached --quiet; then
+            echo 'No recovered-file changes to commit.'
+          else
+            git commit -m 'Recover original Altervista site source'
+            git push
+          fi
 
       - name: Upload recovered legacy snapshot
         uses: actions/upload-artifact@v4
         with:
           name: legacy-altervista-snapshot
-          path: mirror
+          path: legacy-original
           if-no-files-found: error
           retention-days: 7
