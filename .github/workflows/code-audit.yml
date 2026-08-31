@@ -8,6 +8,7 @@ on:
       - '**.xml'
       - '**.txt'
       - '**.svg'
+      - '**.webmanifest'
       - '.github/workflows/code-audit.yml'
   workflow_dispatch:
 
@@ -27,6 +28,7 @@ jobs:
           from pathlib import Path
           from urllib.parse import urlsplit, unquote
           import collections
+          import json
 
           root = Path('.').resolve()
           html_files = sorted(
@@ -51,6 +53,11 @@ jobs:
                   if 'id' in a: self.ids.append(a['id'])
                   for attr in ('href','src'):
                       if attr in a: self.refs.append((tag, attr, a[attr]))
+                  if 'srcset' in a:
+                      for candidate in a['srcset'].split(','):
+                          fields = candidate.strip().split()
+                          if fields:
+                              self.refs.append((tag, 'srcset', fields[0]))
                   if tag == 'img' and 'alt' not in a:
                       errors.append(f'{path}: image missing alt: {a.get("src", "")!r}')
                   if tag == 'a' and a.get('target') == '_blank':
@@ -96,6 +103,22 @@ jobs:
                   target = target.resolve()
                   if not target.exists():
                       errors.append(f'{path}: missing local target: {ref}')
+
+          manifest_path = Path('site.webmanifest')
+          if manifest_path.exists():
+              try:
+                  manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+              except Exception as e:
+                  errors.append(f'{manifest_path}: invalid JSON: {e}')
+                  manifest = {}
+              for icon in manifest.get('icons', []):
+                  ref = str(icon.get('src', '')).strip()
+                  if not ref:
+                      errors.append(f'{manifest_path}: icon without src')
+                      continue
+                  target = root / ref.lstrip('/')
+                  if not target.exists():
+                      errors.append(f'{manifest_path}: missing icon target: {ref}')
 
           print(f'Audited {len(html_files)} HTML/HTM files')
           for x in errors: print('ERROR:', x)
