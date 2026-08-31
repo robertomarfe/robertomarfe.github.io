@@ -1,20 +1,24 @@
 # Security
 
-This repository is a static GitHub Pages site.
+This repository hosts a static GitHub Pages website.
 
-## Hardening
+## Current security properties
 
-- HTTPS-only deployment on GitHub Pages.
-- No server-side code, database, forms, authentication, cookies, analytics, ad scripts, or third-party JavaScript.
-- A restrictive Content Security Policy is embedded in every HTML document.
-- External links use HTTPS and `rel="noopener noreferrer"` when opened in a new tab.
-- CSP disables network connections from JavaScript (`connect-src 'none'`), objects, forms and frames.
-- System fonts are used, avoiding remote font supply-chain dependencies.
+- Production is served over HTTPS by GitHub Pages.
+- The website contains no server-side application code, database, authentication system, or user-submitted forms.
+- Internal files formerly referenced through the insecure Altervista HTTP origin were recovered where available and are now served locally over HTTPS.
+- Links opened with `target="_blank"` include `rel="noopener noreferrer"`.
+- A permanent code-audit workflow flags insecure `http://` references, broken local targets, empty/placeholder links, unsafe `_blank` links, missing image alternative text, duplicate IDs, and missing basic metadata.
+- A post-deployment smoke test verifies the primary live routes over HTTPS.
 
-## Platform note
+## Third-party scripts
 
-GitHub Pages does not provide repository-level control over arbitrary response headers. The CSP is therefore embedded as an HTML meta policy. GitHub's platform provides HTTPS and standard static-hosting protections.
+The current main pages retain the Google Analytics tag that was present in the recovered original site (`G-JD45S6XTX1`). Obsolete Universal Analytics snippets found in legacy archive pages were removed during the code audit.
 
-## Legacy assets
+## Static-hosting limitation
 
-The original Altervista server intermittently returns 502 responses. The live HTML pages were reconstructed from indexed copies and official institutional sources. Where a binary file could not be copied yet (notably the original CV PDF and the legacy 13 MAFIRM slide bitmaps), the site either links the HTTPS legacy file explicitly or replaces the presentation layer with accessible static HTML and points to the current official source.
+GitHub Pages does not expose repository-level configuration of arbitrary HTTP response headers such as a custom Content-Security-Policy, Permissions-Policy, or HSTS policy. Adding a reverse proxy/CDN would make stricter custom response headers possible, but it would also add infrastructure and complexity.
+
+## Legacy fidelity
+
+The main objective of the migration is to preserve the original website's HTML structure, inline styling, navigation, native `<details>` interactions, image assets, documents, and MAFIRM slideshow while removing obsolete or insecure runtime dependencies on the old Altervista origin.
